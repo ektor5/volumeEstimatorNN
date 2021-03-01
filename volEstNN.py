@@ -201,7 +201,9 @@ def main(argv):
 
     npoints = int(argv[1]) if int(argv[1]) > 0 else 0
     nexamples = int(argv[2]) if int(argv[2]) > 0 else 0
-    layers = int(argv[3]) if int(argv[3]) > 0 else 0
+
+    layers_str = argv[3:]
+    layers = tuple( [ int(x) for x in argv[3:] ] )
 
     if not ( npoints and nexamples ):
         print("invalid args")
@@ -233,7 +235,7 @@ def main(argv):
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=1)
 
-    netnamefile = 'net_n{}_ex{}_l{}.bin'.format(npoints,nexamples,layers)
+    netnamefile = 'net_n{}_ex{}_l{}.bin'.format(npoints,nexamples,"_".join(layers_str))
     if path.exists(netnamefile):
         print( "Found net, loading...")
         regr = loadnetwork(netnamefile)
