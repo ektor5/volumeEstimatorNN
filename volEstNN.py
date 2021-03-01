@@ -93,6 +93,38 @@ class SurfaceFunFactory:
     def referenceDataSet(self):
         return self.generateDataSet(len(self.funList),shuffle=0)
 
+    def randomSurfacePlot(self):
+        import matplotlib.pyplot as plt
+        from matplotlib import cm
+        from matplotlib.ticker import LinearLocator
+        import random
+
+        bd = self.bounds
+        fun = random.choice(self.funList)
+
+        fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+
+        # Make data.
+        X = np.arange(bd['xmin'], bd['xmax'], 0.25)
+        Y = np.arange(bd['ymin'], bd['ymax'], 0.25)
+        X, Y = np.meshgrid(X, Y)
+        param = fun.shuffle()
+        print("Parameters:", param)
+
+        # Plot the surface.
+        surf = ax.plot_surface(X, Y, fun.fun(X,Y,**param), cmap=cm.coolwarm,
+                               linewidth=0, antialiased=False)
+
+        # Customize the z axis.
+        ax.set_zlim(-2.01, 2.01)
+        ax.zaxis.set_major_locator(LinearLocator(10))
+        # A StrMethodFormatter is used automatically
+        ax.zaxis.set_major_formatter('{x:.02f}')
+
+        # Add a color bar which maps values to colors.
+        fig.colorbar(surf, shrink=0.5, aspect=5)
+
+        plt.show()
 
 class SurfaceFun:
 
@@ -206,12 +238,18 @@ def main(argv):
     layers_str = argv[3:]
     layers = tuple( [ int(x) for x in argv[3:] ] )
 
-    if not ( npoints and nexamples ):
+    if not npoints:
         print("invalid args")
         exit(2)
     
     print("Initializing...")
     funFact = init(npoints)
+
+    # plot a random surface
+    if not nexamples:
+        while [ 1 ]:
+            funFact.randomSurfacePlot()
+        exit(0)
 
     print("Creating dataset...")
     Xref,yref = funFact.referenceDataSet()
