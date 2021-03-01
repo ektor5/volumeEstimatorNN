@@ -21,6 +21,7 @@ import numpy as np
 from scipy.integrate import quad, dblquad
 from sklearn.neural_network import MLPRegressor
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 from typing import TypedDict
 from pickle import load,dump
 from os import path
@@ -233,7 +234,14 @@ def main(argv):
         print("Skipping training")
         exit(0)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=1)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    print("dim trainset", len(X_train))
+    print("dim testset", len(X_test))
+
+    sc = StandardScaler()
+    X_train_scaled = sc.fit_transform(X_train)
+    X_test_scaled = sc.transform(X_test)
+    X_dataref_scaled = sc.transform(Xref)
 
     netnamefile = 'net_n{}_ex{}_l{}.bin'.format(npoints,nexamples,"_".join(layers_str))
     if path.exists(netnamefile):
@@ -243,21 +251,21 @@ def main(argv):
         print("Training network...")
         from joblib import parallel_backend
         with parallel_backend('threading', n_jobs=8):
-            regr = MLPRegressor(hidden_layer_sizes=layers, 
+            regr = MLPRegressor(hidden_layer_sizes=layers,
                                 random_state=1, 
                                 max_iter=5000
-                ).fit(X_train, y_train)
+                ).fit(X_train_scaled, y_train)
         print( "Saving network...")
         savenetwork(regr,netnamefile)
 
     print(regr)
-    for dataref, targetref in zip(Xref,yref):
+    for dataref, targetref in zip(X_dataref_scaled,yref):
         predicted = regr.predict([dataref])
         err = predicted - targetref
         print("Data analyzed: ", predicted)
         print("Real volume  : ", targetref)
         print("Error        : ", err)
 
-    print("score on test set is", regr.score(X_test, y_test))
+    print("score on test set is", regr.score(X_test_scaled, y_test))
 
 main(argv)
