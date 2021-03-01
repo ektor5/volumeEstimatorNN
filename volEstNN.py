@@ -184,27 +184,27 @@ def init(npoints):
     funFact = SurfaceFunFactory(bounds,npoints)
 
     fun = lambda x,y,z0,A : A*np.sin(x+y)+z0
-    funFact.add(fun, z0=[(1,0.1)], 
-                    A=[(1.0/30,0.2)])
+    funFact.add(fun, z0=[(1,0.1)],
+                    A=[(1.0/30,0.02)])
 
     fun = lambda x,y,z0,A,B,C,D,E : A*(x+B)*(y+C)*np.sin(D*(x+E*y))+z0
-    funFact.add(fun, z0=[(1,0.1)], 
-                    A=[(1.0/1200,0.2)], 
-                    B=[(20,0.2)], 
-                    C=[(10,0.2)], 
-                    D=[(1.0/5,0.2)], 
-                    E=[(1.0/2,0.2)])
+    funFact.add(fun, z0=[(1,0.1)],
+                    A=[(1.0/1200,0.0001)],
+                    B=[(20,0.02)],
+                    C=[(10,0.02)],
+                    D=[(1.0/5,0.02)],
+                    E=[(1.0/2,0.02)])
 
     fun = lambda x,y,z0,A,B : A*np.sin(B*(x+y))+z0
     funFact.add(fun, z0=[(1,0.1)],
-                    A=[(1.0/3,0.2)],
-                    B=[(1.0/10,0.2)])
+                    A=[(1.0/3,0.02)],
+                    B=[(1.0/10,0.02)])
 
     fun = lambda x,y,z0,A,B,C : A*(B*x*x+C*x*y-y*y)+z0
     funFact.add(fun, z0=[(1,0.1)],
-                    A=[(1.0/400,0.2)],
-                    B=[(2,0.2)],
-                    C=[(3,0.2)])
+                    A=[(1.0/400,0.002)],
+                    B=[(2,0.02)],
+                    C=[(3,0.02)])
 
     return funFact
 
