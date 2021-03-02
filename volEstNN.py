@@ -226,8 +226,16 @@ def loadnetwork(namefile):
         r = load(output)
         return r
 
-def main(argv):
+def savelog(save,namefile):
+    import csv
 
+    with open(namefile, mode='w') as f:
+        csvwriter = csv.writer(f, delimiter=',', quotechar='"',
+                quoting=csv.QUOTE_MINIMAL)
+
+        csvwriter.writerow(save)
+
+def main(argv):
     if len(argv) < 3:
         print("not enough args: npoints nexamples layers")
         exit(1)
@@ -290,13 +298,16 @@ def main(argv):
         from joblib import parallel_backend
         with parallel_backend('threading', n_jobs=8):
             regr = MLPRegressor(hidden_layer_sizes=layers,
-                                random_state=1, 
+                                random_state=1,
                                 max_iter=5000
                 ).fit(X_train_scaled, y_train)
         print( "Saving network...")
         savenetwork(regr,netnamefile)
 
     print(regr)
+
+    log = []
+
     for dataref, targetref in zip(X_dataref_scaled,yref):
         predicted = regr.predict([dataref])
         err = predicted - targetref
@@ -304,6 +315,16 @@ def main(argv):
         print("Real volume  : ", targetref)
         print("Error        : ", err)
 
-    print("score on test set is", regr.score(X_test_scaled, y_test))
+        log.append(err[0])
+
+    rscore = regr.score(X_test_scaled, y_test)
+    log.append(rscore)
+    print("score on test set is", rscore)
+
+    log.extend([npoints,nexamples])
+    log.extend(layers_str)
+
+    lognamefile = 'net_n{}_ex{}_l{}.csv'.format(npoints,nexamples,"_".join(layers_str))
+    savelog(log,lognamefile)
 
 main(argv)
