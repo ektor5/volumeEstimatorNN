@@ -208,6 +208,29 @@ def init(npoints):
 
     return funFact
 
+def testset(npoints):
+    bounds: Bounds = { 
+            'xmin': 0,
+            'xmax': 20,
+            'ymin': 0,
+            'ymax': 20
+    }
+    funFact = SurfaceFunFactory(bounds,npoints)
+
+    fun = lambda x,y,z0,A : A*np.cos(x+y)+z0
+    funFact.add(fun, z0=[(1,0.3)],
+                    A=[(1.0/20,0.02)])
+
+    fun = lambda x,y,z0,A,B,C,D,E : A*(x+B)*(y+C)*np.cos(D*(x+E*y))+z0
+    funFact.add(fun, z0=[(1,0.1)],
+                    A=[(1.0/1400,0.0001)],
+                    B=[(24,0.02)],
+                    C=[(7,0.02)],
+                    D=[(1.0/7,0.05)],
+                    E=[(1.0/4,0.02)])
+    return funFact
+
+
 def savedataset(X,y,namefile):
     with open(namefile, 'wb') as output:
         dump((X,y), output)
@@ -252,15 +275,17 @@ def main(argv):
     
     print("Initializing...")
     funFact = init(npoints)
+    testFact = testset(npoints)
 
     # plot a random surface
     if not nexamples:
         while [ 1 ]:
-            funFact.randomSurfacePlot()
+            testFact.randomSurfacePlot()
         exit(0)
 
-    print("Creating dataset...")
     Xref,yref = funFact.referenceDataSet()
+    Xtr,ytr = testFact.referenceDataSet()
+    X_t,y_t = testFact.generateDataSet(nexamples // 8)
 
     X = []
     y = []
@@ -272,6 +297,7 @@ def main(argv):
         X,y = loaddataset(namefile)
         print("Loaded {} datapoints".format(len(X)))
     else:
+        print("Creating dataset...")
         X,y = funFact.generateDataSet(nexamples)
         print( "Saving dataset...")
         savedataset(X,y,namefile)
@@ -288,6 +314,8 @@ def main(argv):
     X_train_scaled = sc.fit_transform(X_train)
     X_test_scaled = sc.transform(X_test)
     X_dataref_scaled = sc.transform(Xref)
+    Xtr_scaled = sc.transform(Xtr) 
+    X_t_scaled = sc.transform(X_t)
 
     netnamefile = 'net_n{}_ex{}_l{}.bin'.format(npoints,nexamples,"_".join(layers_str))
     if path.exists(netnamefile):
@@ -317,9 +345,21 @@ def main(argv):
 
         log.append(err[0])
 
+    for dataref, targetref in zip(Xtr,ytr):
+        predicted = regr.predict([dataref])
+        err = predicted - targetref
+        print("Data analyzed: ", predicted)
+        print("Real volume  : ", targetref)
+        print("Error        : ", err)
+
+        log.append(err[0])
+
     rscore = regr.score(X_test_scaled, y_test)
     log.append(rscore)
     print("score on test set is", rscore)
+
+    rscore_t = regr.score(X_t_scaled, y_t)
+    print("score on separate test set is", rscore_t )
 
     log.extend([npoints,nexamples])
     log.extend(layers_str)

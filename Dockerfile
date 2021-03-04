@@ -11,4 +11,4 @@ RUN mkdir /ext
 COPY ./volEstNN.py /
 
 WORKDIR /ext
-CMD /volEstNN.py
+CMD python /volEstNN.py
