@@ -50,6 +50,7 @@ octaves = 6
 noise_n = 64
 spline_n = 254
 margin = 0.1
+offset = 0.5
 shape = ( noise_n, noise_n )
 xpix, ypix = shape
 
@@ -285,10 +286,10 @@ def generateNoiseExample(inp):
     x,y,px,py = param
 
     print("generating noise...",n)
-    noise = PerlinNoise(octaves=octaves, seed=random.choice(range(1000)))
+    noise = PerlinNoise(octaves=octaves, seed=n)
     pic= np.array( [
         [ noise([i/xpix/scale, j/ypix/scale]) for j in range(xpix) ]
-            for i in range(ypix)]) + 0.5
+            for i in range(ypix)]) + offset
 
     print("generating spline...",n)
     tck = interpolate.bisplrep(x, y, pic, s=0)
