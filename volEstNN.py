@@ -22,16 +22,37 @@ from scipy.integrate import quad, dblquad
 from sklearn.neural_network import MLPRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+from scipy import interpolate
 from typing import TypedDict
 from pickle import load,dump
 from os import path
 from sys import argv
+from perlin_noise import PerlinNoise
+from multiprocessing import Pool,cpu_count
+
+import random 
 
 class Bounds(TypedDict):
     xmax: float
     ymax: float
     xmin: float
     ymin: float
+
+bounds: Bounds = { 
+        'xmin': 0,
+        'xmax': 20,
+        'ymin': 0,
+        'ymax': 20
+}
+cores = cpu_count()
+scale = 3
+octaves = 6
+noise_n = 64
+spline_n = 254
+margin = 0.1
+shape = ( noise_n, noise_n )
+xpix, ypix = shape
+
 
 def generatePointGrid(bounds,npoints):
     xmax = bounds["xmax"]
@@ -258,6 +279,57 @@ def savelog(save,namefile):
 
         csvwriter.writerow(save)
 
+
+def generateNoiseExample(inp):
+    n,param = inp
+    x,y,px,py = param
+
+    print("generating noise...",n)
+    noise = PerlinNoise(octaves=octaves, seed=random.choice(range(1000)))
+    pic= np.array( [
+        [ noise([i/xpix/scale, j/ypix/scale]) for j in range(xpix) ]
+            for i in range(ypix)]) + 0.5
+
+    print("generating spline...",n)
+    tck = interpolate.bisplrep(x, y, pic, s=0)
+    f = lambda x,y : interpolate.bisplev(x, y, tck)
+
+    data = [ f(x,y) for x,y in zip(px,py) ]
+    print(data)
+
+    print("calculating volume...",n)
+    volume,err = dblquad( f, bounds['xmin'], bounds['xmax'], 
+        lambda x: bounds['ymin'], lambda x: bounds['ymax'])
+    print(volume) 
+
+    return data,volume
+
+def generateNoiseDataset(npoints, nexample):
+    lin_x = np.linspace(bounds['xmin']-margin,bounds['xmax']+margin,
+            shape[0],endpoint=False)
+    lin_y = np.linspace(bounds['ymin']-margin,bounds['ymax']+margin,
+            shape[1],endpoint=False)
+    x,y = np.meshgrid(lin_x,lin_y)
+
+    #xnew_lin = np.linspace(bounds['xmin'],bounds['xmax'],spline_n,endpoint=False)
+    #ynew_lin = np.linspace(bounds['ymin'],bounds['ymax'],spline_n,endpoint=False)
+    #xnew,ynew = np.meshgrid(xnew_lin,ynew_lin)
+
+    points = generatePointGrid(bounds,npoints)
+    px = [ p[0] for p in points ]
+    py = [ p[1] for p in points ]
+
+    results = []
+    param = (x,y,px,py)
+    with Pool( cores ) as p:
+        results.extend(p.map( generateNoiseExample, 
+            [ (n,param) for n in range(nexample) ] ))
+
+    X = [result[0] for result in results]
+    y = [result[1] for result in results]
+
+    return X,y
+
 def main(argv):
     if len(argv) < 3:
         print("not enough args: npoints nexamples layers")
@@ -298,7 +370,11 @@ def main(argv):
         print("Loaded {} datapoints".format(len(X)))
     else:
         print("Creating dataset...")
-        X,y = funFact.generateDataSet(nexamples)
+        #X,y = funFact.generateDataSet(nexamples)
+        X,y = generateNoiseDataset(npoints,nexamples)
+
+        print(X[-1],y[-1])
+
         print( "Saving dataset...")
         savedataset(X,y,namefile)
 
