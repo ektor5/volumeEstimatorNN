@@ -49,7 +49,6 @@ scale_b = (96, 256)
 octaves_b = (5,10)
 margin = 0.5
 offset_b = (0.5,2.5)
-cores = 8
 noise_n = 16
 spline_n = 254
 shape = ( noise_n, noise_n )
