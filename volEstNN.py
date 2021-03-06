@@ -305,7 +305,7 @@ def generateNoiseExample(inp):
 
         print("generating spline...",n)
         tck = interpolate.bisplrep(surfx, surfy, pic)
-        f = lambda x,y : interpolate.bisplev(x, y, tck)
+        f = lambda y,x : interpolate.bisplev(x, y, tck)
 
         data = [ f(x,y) for x,y in zip(px,py) ]
         print(data)
