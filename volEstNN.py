@@ -243,15 +243,15 @@ def testset(npoints):
     funFact = SurfaceFunFactory(bounds,npoints)
 
     fun = lambda x,y,z0,A : A*np.cos(x+y)+z0
-    funFact.add(fun, z0=[(1,0.3)],
+    funFact.add(fun, z0=[(1,0.2)],
                     A=[(1.0/20,0.02)])
 
     fun = lambda x,y,z0,A,B,C,D,E : A*(x+B)*(y+C)*np.cos(D*(x+E*y))+z0
-    funFact.add(fun, z0=[(1,0.1)],
-                    A=[(1.0/1400,0.0001)],
-                    B=[(24,0.02)],
+    funFact.add(fun, z0=[(1,0.2)],
+                    A=[(1.0/1300,0.0001)],
+                    B=[(23,0.02)],
                     C=[(7,0.02)],
-                    D=[(1.0/7,0.05)],
+                    D=[(1.0/6,0.05)],
                     E=[(1.0/4,0.02)])
     return funFact
 
