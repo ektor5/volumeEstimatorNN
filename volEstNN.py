@@ -45,13 +45,16 @@ bounds: Bounds = {
         'ymax': 20
 }
 cores = cpu_count()
-scale = 3
-octaves = 6
-noise_n = 64
+scale_b = (96, 256)
+octaves_b = (5,10)
+margin = 0.5
+offset_b = (0.5,2.5)
+cores = 8
+noise_n = 16
 spline_n = 254
-margin = 0.1
-offset = 0.5
 shape = ( noise_n, noise_n )
+max_err = 0.1
+
 xpix, ypix = shape
 
 
@@ -283,25 +286,41 @@ def savelog(save,namefile):
 
 def generateNoiseExample(inp):
     n,param = inp
-    x,y,px,py = param
+    surfx,surfy,px,py = param
+
+    scale = random.uniform(scale_b[0],scale_b[1])
+    octaves = random.uniform(octaves_b[0],octaves_b[1])
+    offset = random.uniform(offset_b[0],offset_b[1])
 
     print("generating noise...",n)
-    noise = PerlinNoise(octaves=octaves, seed=n)
-    pic= np.array( [
-        [ noise([i/xpix/scale, j/ypix/scale]) for j in range(xpix) ]
-            for i in range(ypix)]) + offset
+    scale = random.uniform(scale_b[0],scale_b[1])
+    octaves = random.uniform(octaves_b[0],octaves_b[1])
+    offset = random.uniform(offset_b[0],offset_b[1])
 
-    print("generating spline...",n)
-    tck = interpolate.bisplrep(x, y, pic, s=0)
-    f = lambda x,y : interpolate.bisplev(x, y, tck)
+    try:
+        noise = PerlinNoise(octaves=octaves, seed=n+1)
 
-    data = [ f(x,y) for x,y in zip(px,py) ]
-    print(data)
+        pic = np.array([ [ noise([ x/scale, y/scale ]) for x in surfx[0] ] 
+            for y in surfy[0] ]) + offset
 
-    print("calculating volume...",n)
-    volume,err = dblquad( f, bounds['xmin'], bounds['xmax'], 
-        lambda x: bounds['ymin'], lambda x: bounds['ymax'])
-    print(volume) 
+        print("generating spline...",n)
+        tck = interpolate.bisplrep(surfx, surfy, pic)
+        f = lambda x,y : interpolate.bisplev(x, y, tck)
+
+        data = [ f(x,y) for x,y in zip(px,py) ]
+        print(data)
+
+        print("calculating volume...",n)
+        volume,err = dblquad( f, bounds['xmin'], bounds['xmax'], 
+            lambda x: bounds['ymin'], lambda x: bounds['ymax'])
+        print(volume) 
+
+    except:
+        print("BUG: exception happened at worker", n)
+        data,volume = (None,None)
+
+    if err > max_err:
+        data,volume = (None,None)
 
     return data,volume
 
@@ -326,8 +345,8 @@ def generateNoiseDataset(npoints, nexample):
         results.extend(p.map( generateNoiseExample, 
             [ (n,param) for n in range(nexample) ] ))
 
-    X = [result[0] for result in results]
-    y = [result[1] for result in results]
+    X = [result[0] for result in results if result[0] is not None ]
+    y = [result[1] for result in results if result[1] is not None ]
 
     return X,y
 
@@ -363,7 +382,7 @@ def main(argv):
     X = []
     y = []
 
-    namefile = 'dataset_n{}_ex{}.bin'.format(npoints,nexamples)
+    namefile = 'dataset_noise_n{}_ex{}.bin'.format(npoints,nexamples)
 
     if path.exists(namefile):
         print( "Found dataset, loading...")
@@ -394,7 +413,7 @@ def main(argv):
     Xtr_scaled = sc.transform(Xtr) 
     X_t_scaled = sc.transform(X_t)
 
-    netnamefile = 'net_n{}_ex{}_l{}.bin'.format(npoints,nexamples,"_".join(layers_str))
+    netnamefile = 'net_noise_n{}_ex{}_l{}.bin'.format(npoints,nexamples,"_".join(layers_str))
     if path.exists(netnamefile):
         print( "Found net, loading...")
         regr = loadnetwork(netnamefile)
@@ -441,7 +460,7 @@ def main(argv):
     log.extend([npoints,nexamples])
     log.extend(layers_str)
 
-    lognamefile = 'net_n{}_ex{}_l{}.csv'.format(npoints,nexamples,"_".join(layers_str))
+    lognamefile = 'net_noise_n{}_ex{}_l{}.csv'.format(npoints,nexamples,"_".join(layers_str))
     savelog(log,lognamefile)
 
 main(argv)
