@@ -58,20 +58,10 @@ xpix, ypix = shape
 
 
 def generatePointGrid(bounds,npoints):
-    xmax = bounds["xmax"]
-    xmin = bounds["xmin"]
-    ymax = bounds["ymax"]
-    ymin = bounds["ymin"]
+    lpx = np.linspace(bounds['xmin'],bounds['xmax'], npoints)
+    lpy = np.linspace(bounds['ymin'],bounds['ymax'], npoints)
 
-    xstep = (xmax-xmin)/npoints
-    ystep = (ymax-ymin)/npoints
-
-    points = []
-    for xn in range(0,npoints):
-        for yn in range(0,npoints):
-            points.append((xn*xstep, yn*ystep))
-
-    return points
+    return lpx,lpy
 
 class SurfaceFunFactory:
 
@@ -88,8 +78,9 @@ class SurfaceFunFactory:
     def generateExample(self,func,params):
 
         data = []
-        for x,y in self.points:
-            data.append( func.z(x,y,params) )
+        linx,liny = self.points
+        
+        data = [ func.z(x,y,params) for x in linx for y in liny ]
 
         target,error = func.volume(self.bounds, params)
 
@@ -135,9 +126,16 @@ class SurfaceFunFactory:
         param = fun.shuffle()
         print("Parameters:", param)
 
+        px,py = generatePointGrid(self.bounds,self.npoint)
+        mx,my = np.meshgrid(px,py)
+        print(px,py)
+        z = fun.fun(mx,my,**param)
+        print(z)
+
         # Plot the surface.
         surf = ax.plot_surface(X, Y, fun.fun(X,Y,**param), cmap=cm.coolwarm,
                                linewidth=0, antialiased=False)
+        ax.scatter3D(mx, my, z, s=15, color='red', label='points')
 
         # Customize the z axis.
         ax.set_zlim(-2.01, 2.01)
@@ -299,23 +297,20 @@ def generateNoiseExample(inp):
     try:
         noise = PerlinNoise(octaves=octaves, seed=n+1)
 
-        pic = np.array([ [ noise([ x/scale, y/scale ]) for x in surfx[0] ] 
-            for y in surfy[0] ]) + offset
+        pic = np.array([ [ noise([ surfx[x][y]/scale, surfy[x][y]/scale ]) for x in range(len(surfx)) ] for y in range(len(surfy))]) + offset
 
         print("generating spline...",n)
         tck = interpolate.bisplrep(surfx, surfy, pic)
         f = lambda y,x : interpolate.bisplev(x, y, tck)
 
-        data = [ f(x,y) for x,y in zip(px,py) ]
-        print(data)
+        data = [ f(y,x) for x in px for y in py ] 
 
         print("calculating volume...",n)
         volume,err = dblquad( f, bounds['xmin'], bounds['xmax'], 
             lambda x: bounds['ymin'], lambda x: bounds['ymax'])
-        print(volume) 
 
-    except:
-        print("BUG: exception happened at worker", n)
+    except Exception as e:
+        print("BUG: exception happened at worker", n, e)
         data,volume = (None,None)
 
     if err > max_err:
@@ -325,9 +320,9 @@ def generateNoiseExample(inp):
 
 def generateNoiseDataset(npoints, nexample):
     lin_x = np.linspace(bounds['xmin']-margin,bounds['xmax']+margin,
-            shape[0],endpoint=False)
+            shape[0])
     lin_y = np.linspace(bounds['ymin']-margin,bounds['ymax']+margin,
-            shape[1],endpoint=False)
+            shape[1])
     x,y = np.meshgrid(lin_x,lin_y)
 
     #xnew_lin = np.linspace(bounds['xmin'],bounds['xmax'],spline_n,endpoint=False)
@@ -335,8 +330,7 @@ def generateNoiseDataset(npoints, nexample):
     #xnew,ynew = np.meshgrid(xnew_lin,ynew_lin)
 
     points = generatePointGrid(bounds,npoints)
-    px = [ p[0] for p in points ]
-    py = [ p[1] for p in points ]
+    px, py = points
 
     results = []
     param = (x,y,px,py)
@@ -392,8 +386,6 @@ def main(argv):
         #X,y = funFact.generateDataSet(nexamples)
         X,y = generateNoiseDataset(npoints,nexamples)
 
-        print(X[-1],y[-1])
-
         print( "Saving dataset...")
         savedataset(X,y,namefile)
 
@@ -411,6 +403,7 @@ def main(argv):
     X_dataref_scaled = sc.transform(Xref)
     Xtr_scaled = sc.transform(Xtr) 
     X_t_scaled = sc.transform(X_t)
+    print(np.array(X_train[0]))
 
     netnamefile = 'net_noise_n{}_ex{}_l{}.bin'.format(npoints,nexamples,"_".join(layers_str))
     if path.exists(netnamefile):
