@@ -45,8 +45,10 @@ bounds: Bounds = {
         'ymax': 20
 }
 cores = cpu_count()
-scale_b = (96, 256)
-octaves_b = (5,10)
+scale_b = (64, 256)
+octaves_b = (5,8)
+offset_b = (0.5,2)
+gradient_b = (1,4)
 margin = 0.5
 offset_b = (0.5,2.5)
 noise_n = 16
@@ -288,20 +290,15 @@ def generateNoiseExample(inp):
     scale = random.uniform(scale_b[0],scale_b[1])
     octaves = random.uniform(octaves_b[0],octaves_b[1])
     offset = random.uniform(offset_b[0],offset_b[1])
+    gradient = random.uniform(gradient_b[0],gradient_b[1])
 
     print("generating noise...",n)
-    scale = random.uniform(scale_b[0],scale_b[1])
-    octaves = random.uniform(octaves_b[0],octaves_b[1])
-    offset = random.uniform(offset_b[0],offset_b[1])
 
     try:
         noise = PerlinNoise(octaves=octaves, seed=n+1)
 
-        pic = np.array([ [ noise([ surfx[x][y]/scale, surfy[x][y]/scale ]) for x in range(len(surfx)) ] for y in range(len(surfy))]) + offset
-
         print("generating spline...",n)
-        tck = interpolate.bisplrep(surfx, surfy, pic)
-        f = lambda y,x : interpolate.bisplev(x, y, tck)
+        f = lambda y,x : max(0,(noise([x/scale, y/scale])*gradient)+offset)
 
         data = [ f(y,x) for x in px for y in py ] 
 
