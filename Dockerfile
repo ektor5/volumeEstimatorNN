@@ -6,6 +6,7 @@ RUN apt install -y parallel
 
 RUN pip install sklearn
 RUN pip install numpy
+RUN pip install perlin_noise
 
 RUN mkdir /ext
 COPY ./volEstNN.py /

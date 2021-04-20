@@ -366,8 +366,7 @@ def main(argv):
         exit(0)
 
     Xref,yref = funFact.referenceDataSet()
-    Xtr,ytr = testFact.referenceDataSet()
-    X_t,y_t = testFact.generateDataSet(nexamples // 8)
+    X_t,y_t = funFact.generateDataSet(nexamples // 8)
 
     X = []
     y = []
@@ -398,7 +397,6 @@ def main(argv):
     X_train_scaled = sc.fit_transform(X_train)
     X_test_scaled = sc.transform(X_test)
     X_dataref_scaled = sc.transform(Xref)
-    Xtr_scaled = sc.transform(Xtr) 
     X_t_scaled = sc.transform(X_t)
     print(np.array(X_train[0]))
 
@@ -430,21 +428,13 @@ def main(argv):
 
         log.append(err[0])
 
-    for dataref, targetref in zip(Xtr,ytr):
-        predicted = regr.predict([dataref])
-        err = predicted - targetref
-        print("Data analyzed: ", predicted)
-        print("Real volume  : ", targetref)
-        print("Error        : ", err)
-
-        log.append(err[0])
-
     rscore = regr.score(X_test_scaled, y_test)
     log.append(rscore)
     print("score on test set is", rscore)
 
     rscore_t = regr.score(X_t_scaled, y_t)
-    print("score on separate test set is", rscore_t )
+    log.append(rscore_t)
+    print("score on evaluation set is", rscore_t )
 
     log.extend([npoints,nexamples])
     log.extend(layers_str)
